@@ -1,0 +1,152 @@
+package gin
+
+import (
+	"errors"
+	"html"
+
+	"reflect"
+)
+
+func HtmlParse(data interface{}) (err error) {
+
+	value := reflect.ValueOf(data)
+
+	switch value.Kind() {
+	case reflect.Ptr:
+		PtrParse(value.Interface())
+	case reflect.Map:
+		MapParse(value.Interface())
+	case reflect.Slice:
+		SliceParse(value.Interface())
+	default:
+		return errors.New("not support the type parse")
+	}
+
+	return
+
+}
+
+func PtrParse(data interface{}) {
+
+	dvalue := reflect.ValueOf(data)
+
+	if dvalue.Kind() != reflect.Ptr {
+		panic("data must be ptr")
+	}
+
+	value := dvalue.Elem()
+	dealNoMapType(value)
+
+	return
+
+}
+
+func SliceParse(data interface{}) {
+
+	dvalue := reflect.ValueOf(data)
+	if dvalue.Kind() != reflect.Slice {
+		panic("data must be slice")
+		return
+	}
+
+	for i := 0; i < dvalue.Len(); i++ {
+		value := dvalue.Index(i)
+		dealNoMapType(value)
+	}
+}
+
+func arrayParse(data interface{}) {
+
+	dvalue := reflect.ValueOf(data).Elem()
+	if dvalue.Kind() != reflect.Array {
+		panic("data must be array")
+		return
+	}
+
+	for i := 0; i < dvalue.Len(); i++ {
+		value := dvalue.Index(i)
+		dealNoMapType(value)
+	}
+}
+
+func MapParse(data interface{}) {
+
+	dvalue := reflect.ValueOf(data)
+	if dvalue.Kind() != reflect.Map {
+		panic("data must be map")
+	}
+
+	for _, key := range dvalue.MapKeys() {
+		value := dvalue.MapIndex(key)
+		switch value.Kind() {
+		case reflect.String:
+			valueStr := html.EscapeString(value.Interface().(string))
+			dvalue.SetMapIndex(key, reflect.ValueOf(valueStr))
+		case reflect.Interface:
+			newValue := reflect.ValueOf(value.Interface())
+			if newValue.Kind() == reflect.String {
+				valueStr := html.EscapeString(newValue.Interface().(string))
+				dvalue.SetMapIndex(key, reflect.ValueOf(valueStr))
+			} else {
+				choiceParseMethod(reflect.ValueOf(value.Interface()))
+			}
+		default:
+			choiceParseMethod(value)
+		}
+	}
+}
+
+func structParse(data interface{}) {
+
+	dvalue := reflect.ValueOf(data)
+	elemValue := dvalue.Elem()
+
+	if elemValue.Kind() != reflect.Struct {
+		panic("data must be struct")
+	}
+
+	elemType := elemValue.Type()
+
+	for i := 0; i < elemType.NumField(); i++ {
+		value := elemValue.Field(i)
+		dealNoMapType(value)
+	}
+
+	return
+
+}
+
+func dealNoMapType(value reflect.Value) {
+	if value.Kind() == reflect.String {
+		valueStr := html.EscapeString(value.Interface().(string))
+		value.SetString(valueStr)
+	} else if value.Kind() == reflect.Interface {
+		newValue := reflect.ValueOf(value.Interface())
+		if newValue.Kind() == reflect.String {
+			valueStr := html.EscapeString(newValue.Interface().(string))
+			value.Set(reflect.ValueOf(valueStr))
+		} else {
+			choiceParseMethod(reflect.ValueOf(value.Interface()))
+		}
+
+	} else {
+		choiceParseMethod(value)
+	}
+}
+
+func choiceParseMethod(value reflect.Value) {
+	switch value.Kind() {
+	case reflect.Ptr:
+		PtrParse(value.Interface())
+	case reflect.Struct:
+		newValue := value.Addr()
+		structParse(newValue.Interface())
+	case reflect.Map:
+		MapParse(value.Interface())
+	case reflect.Slice:
+		SliceParse(value.Interface())
+	case reflect.Array:
+		newValue := value.Addr()
+		arrayParse(newValue.Interface())
+	}
+}
