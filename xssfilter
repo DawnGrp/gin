@@ -7,26 +7,27 @@ import (
 	"reflect"
 )
 
-func HtmlParse(data interface{}) (err error) {
+
+func XssFilter(data interface{}) (err error) {
 
 	value := reflect.ValueOf(data)
 
 	switch value.Kind() {
 	case reflect.Ptr:
-		PtrParse(value.Interface())
+		PtrXssFilter(value.Interface())
 	case reflect.Map:
-		MapParse(value.Interface())
+		MapXssFilter(value.Interface())
 	case reflect.Slice:
-		SliceParse(value.Interface())
+		SliceXssFilter(value.Interface())
 	default:
-		return errors.New("not support the type parse")
+		return errors.New("not support the type XssFilter")
 	}
 
 	return
 
 }
 
-func PtrParse(data interface{}) {
+func PtrXssFilter(data interface{}) {
 
 	dvalue := reflect.ValueOf(data)
 
@@ -41,7 +42,7 @@ func PtrParse(data interface{}) {
 
 }
 
-func SliceParse(data interface{}) {
+func SliceXssFilter(data interface{}) {
 
 	dvalue := reflect.ValueOf(data)
 	if dvalue.Kind() != reflect.Slice {
@@ -55,7 +56,7 @@ func SliceParse(data interface{}) {
 	}
 }
 
-func arrayParse(data interface{}) {
+func arrayXssFilter(data interface{}) {
 
 	dvalue := reflect.ValueOf(data).Elem()
 	if dvalue.Kind() != reflect.Array {
@@ -69,7 +70,7 @@ func arrayParse(data interface{}) {
 	}
 }
 
-func MapParse(data interface{}) {
+func MapXssFilter(data interface{}) {
 
 	dvalue := reflect.ValueOf(data)
 	if dvalue.Kind() != reflect.Map {
@@ -88,15 +89,15 @@ func MapParse(data interface{}) {
 				valueStr := html.EscapeString(newValue.Interface().(string))
 				dvalue.SetMapIndex(key, reflect.ValueOf(valueStr))
 			} else {
-				choiceParseMethod(reflect.ValueOf(value.Interface()))
+				choiceXssFilterMethod(reflect.ValueOf(value.Interface()))
 			}
 		default:
-			choiceParseMethod(value)
+			choiceXssFilterMethod(value)
 		}
 	}
 }
 
-func structParse(data interface{}) {
+func structXssFilter(data interface{}) {
 
 	dvalue := reflect.ValueOf(data)
 	elemValue := dvalue.Elem()
@@ -126,27 +127,27 @@ func dealNoMapType(value reflect.Value) {
 			valueStr := html.EscapeString(newValue.Interface().(string))
 			value.Set(reflect.ValueOf(valueStr))
 		} else {
-			choiceParseMethod(reflect.ValueOf(value.Interface()))
+			choiceXssFilterMethod(reflect.ValueOf(value.Interface()))
 		}
 
 	} else {
-		choiceParseMethod(value)
+		choiceXssFilterMethod(value)
 	}
 }
 
-func choiceParseMethod(value reflect.Value) {
+func choiceXssFilterMethod(value reflect.Value) {
 	switch value.Kind() {
 	case reflect.Ptr:
-		PtrParse(value.Interface())
+		PtrXssFilter(value.Interface())
 	case reflect.Struct:
 		newValue := value.Addr()
-		structParse(newValue.Interface())
+		structXssFilter(newValue.Interface())
 	case reflect.Map:
-		MapParse(value.Interface())
+		MapXssFilter(value.Interface())
 	case reflect.Slice:
-		SliceParse(value.Interface())
+		SliceXssFilter(value.Interface())
 	case reflect.Array:
 		newValue := value.Addr()
-		arrayParse(newValue.Interface())
+		arrayXssFilter(newValue.Interface())
 	}
 }
