@@ -47,7 +47,6 @@ func SliceXssFilter(data interface{}) {
 	dvalue := reflect.ValueOf(data)
 	if dvalue.Kind() != reflect.Slice {
 		panic("data must be slice")
-		return
 	}
 
 	for i := 0; i < dvalue.Len(); i++ {
@@ -61,7 +60,6 @@ func arrayXssFilter(data interface{}) {
 	dvalue := reflect.ValueOf(data).Elem()
 	if dvalue.Kind() != reflect.Array {
 		panic("data must be array")
-		return
 	}
 
 	for i := 0; i < dvalue.Len(); i++ {
